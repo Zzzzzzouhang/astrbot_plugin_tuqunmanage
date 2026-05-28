@@ -102,38 +102,55 @@ class FastCarLotteryPlugin(Star):
     # 🌟 修复点 1：增加 priority=1，确保全量监听在 LLM 之前触发
     @filter.event_message_type(filter.EventMessageType.ALL, priority=1)
     async def on_normal_message(self, event: AstrMessageEvent):
-        """全局消息监听。新用户发送则回复，老用户发送数字则自动切换队列（移除旧的）且不回复"""
+        """全局消息监听。支持过滤AT前缀、多数字排队、自动切换队列与静默改签"""
         session_data = self._get_session_data(event)
         current = session_data["current"]
         
         if current and current["active"]:
             text = event.message_str.strip()
             
-            # 检查发送的内容是否在当前监听的数字列表中
-            if text in current["targets"]:
-                # 🌟 修复点 2：一旦匹配成功，立刻拦截事件，防止大模型误回复该数字
+            # 1. 过滤掉可能存在的艾特文本（如 @电子路灯），防止因回复/艾特导致匹配失败
+            clean_text = re.sub(r'@\S+', '', text).strip()
+            
+            # 2. 按空格切分出所有单词/数字
+            tokens = clean_text.split()
+            
+            # 3. 严格匹配：只有当消息不为空，且所有切分内容都是当前合法的目标数字时才触发
+            # 这样既支持了 "9 10" 这种多选，又完美避开了群内聊到相关数字的日常对话（如 "今天9点"）
+            if tokens and all(t in current["targets"] for t in tokens):
+                # 一旦匹配成功，立刻拦截事件，防止大模型误回复
                 event.stop_event()
                 
                 user_id = event.get_sender_id()
                 user_name = event.get_sender_name()
                 
-                is_changed = False
-                for queue_list in current["queues"].values():
-                    for user in queue_list:
-                        if user["id"] == user_id:
-                            queue_list.remove(user)
-                            is_changed = True
-                            break
-                    if is_changed:
-                        break
+                # 提取去重后的有效目标数字组合（保持用户输入的顺序）
+                valid_numbers = list(dict.fromkeys(tokens))
                 
-                current["queues"][text].append({"id": user_id, "name": user_name})
+                # 4. 检查用户此前是否在任何队列中（用于判定是否属于静默改签/换乘逻辑）
+                was_in_queue = False
+                for target, queue_list in current["queues"].items():
+                    if any(user["id"] == user_id for user in queue_list):
+                        was_in_queue = True
+                    # 清理该用户在所有队列中的旧记录（只要发了新数字，就视为重新选座）
+                    current["queues"][target] = [user for user in queue_list if user["id"] != user_id]
+                
+                # 5. 将用户登记到本次选择的所有新队列中
+                for num in valid_numbers:
+                    current["queues"][num].append({"id": user_id, "name": user_name})
+                
                 await self.save_data()
                 
-                if not is_changed:
-                    yield event.plain_result(f"📌 [{user_name}] 已成功记录到 [{text}] 队列！(当前人数：{len(current['queues'][text])})")
+                # 6. 反馈逻辑：第一次上车给提示；老用户更换队列（改签/换乘）则完全静默
+                if not was_in_queue:
+                    if len(valid_numbers) == 1:
+                        num = valid_numbers[0]
+                        yield event.plain_result(f"📌 [{user_name}] 已成功记录到 [{num}] 队列！(当前人数：{len(current['queues'][num])})")
+                    else:
+                        queues_str = "、".join([f"[{n}]" for n in valid_numbers])
+                        yield event.plain_result(f"📌 [{user_name}] 已成功记录到 {queues_str} 队列！")
                 else:
-                    # 老用户换乘改签：由于上面执行了 stop_event()，这里直接 return 就能做到完全静默，不会触发大模型
+                    # 老用户换乘改签：由于上面执行了 stop_event()，这里直接 return 就能做到完全静默
                     return
     # ================= 功能 3: 结束统计 =================
     @filter.command("结束统计")
