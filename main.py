@@ -98,8 +98,9 @@ class FastCarLotteryPlugin(Star):
         targets_str = "、".join(numbers)
         yield event.plain_result(f"✅ 开始新一轮统计！\n正在监听目标队列：{targets_str}。\n请直接在群内发送对应数字加入队列。")
 
-    # ================= 功能 2: 持续记录用户 (支持自动改签与静默模式) =================
-    @filter.event_message_type(filter.EventMessageType.ALL)
+# ================= 功能 2: 持续记录用户 (支持自动改签与静默模式) =================
+    # 🌟 修复点 1：增加 priority=1，确保全量监听在 LLM 之前触发
+    @filter.event_message_type(filter.EventMessageType.ALL, priority=1)
     async def on_normal_message(self, event: AstrMessageEvent):
         """全局消息监听。新用户发送则回复，老用户发送数字则自动切换队列（移除旧的）且不回复"""
         session_data = self._get_session_data(event)
@@ -108,7 +109,11 @@ class FastCarLotteryPlugin(Star):
         if current and current["active"]:
             text = event.message_str.strip()
             
+            # 检查发送的内容是否在当前监听的数字列表中
             if text in current["targets"]:
+                # 🌟 修复点 2：一旦匹配成功，立刻拦截事件，防止大模型误回复该数字
+                event.stop_event()
+                
                 user_id = event.get_sender_id()
                 user_name = event.get_sender_name()
                 
@@ -128,8 +133,8 @@ class FastCarLotteryPlugin(Star):
                 if not is_changed:
                     yield event.plain_result(f"📌 [{user_name}] 已成功记录到 [{text}] 队列！(当前人数：{len(current['queues'][text])})")
                 else:
-                    pass
-
+                    # 老用户换乘改签：由于上面执行了 stop_event()，这里直接 return 就能做到完全静默，不会触发大模型
+                    return
     # ================= 功能 3: 结束统计 =================
     @filter.command("结束统计")
     async def end_stat(self, event: AstrMessageEvent):
