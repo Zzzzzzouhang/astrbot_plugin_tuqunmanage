@@ -1,14 +1,117 @@
-# astrbot-plugin-helloworld
+# astrbot_plugin_tuqunmanage
 
-AstrBot 插件模板 / A template plugin for AstrBot plugin feature
+一款为 [AstrBot](https://github.com/Soulter/AstrBot) 开发的快速车统计与抽取管理插件。
 
-> [!NOTE]
-> This repo is just a template of [AstrBot](https://github.com/AstrBotDevs/AstrBot) Plugin.
-> 
-> [AstrBot](https://github.com/AstrBotDevs/AstrBot) is an agentic assistant for both personal and group conversations. It can be deployed across dozens of mainstream instant messaging platforms, including QQ, Telegram, Feishu, DingTalk, Slack, LINE, Discord, Matrix, etc. In addition, it provides a reliable and extensible conversational AI infrastructure for individuals, developers, and teams. Whether you need a personal AI companion, an intelligent customer support agent, an automation assistant, or an enterprise knowledge base, AstrBot enables you to quickly build AI applications directly within your existing messaging workflows.
+本插件提供了一套完整的群内"快速车"队列管理功能，支持多队列统计、自动上车/换乘、随机抽取中签、中签提醒等核心功能，适用于各种需要排队选人的群聊场景。
 
-# Supports
+## ✨ 功能特性
 
-- [AstrBot Repo](https://github.com/AstrBotDevs/AstrBot)
-- [AstrBot Plugin Development Docs (Chinese)](https://docs.astrbot.app/dev/star/plugin-new.html)
-- [AstrBot Plugin Development Docs (English)](https://docs.astrbot.app/en/dev/star/plugin-new.html)
+- **多队列并行统计** ：支持同时开启 1~5 个目标队列，群成员发送对应数字即可登记加入。
+- **自动换乘改签** ：群成员发送新数字时，系统自动将其从旧队列移除并加入新队列，无需手动操作。
+- **批量添加/移除** ：管理员可通过 `@群友` 方式批量将成员加入或移出指定队列。
+- **随机抽取中签** ：统计结束后，从各队列中随机抽取指定人数并展示结果。
+- **中签一键提醒** ：通过 `@` 强提醒指定队列的中签群友，避免遗漏。
+- **队列灵活管理** ：支持动态添加、修改、结束队列，已有成员及中签记录平滑迁移。
+- **历史归档查询** ：当前统计清空后自动归档到历史记录，可随时查看上一次统计详情。
+- **数据持久化存储** ：使用 AstrBot KV 存储，插件重启后数据不丢失，支持旧版数据结构自动迁移。
+- **权限管控** ：核心管理指令仅限 Bot 管理员操作，群成员仅能参与上车登记。
+
+## 🛠️ 安装方法
+
+### 1. 通过管理面板安装 (推荐)
+
+打开 AstrBot Web 管理面板，点击 **安装插件** 并切换到 **从链接安装** ：
+
+1. 在"输入插件仓库链接"输入框中粘贴本插件的 GitHub 地址：
+
+```
+https://github.com/Zzzzzzouhang/astrbot_plugin_tuqunmanage
+```
+
+2. 根据你的网络状况选择是否开启 **GitHub 加速** 。
+
+3. 点击 **安装** ，等待面板提示下载完成。
+
+### 2. 手动安装 (备选)
+
+如果你无法通过面板联网安装，也可以手动将本仓库克隆到你 AstrBot 运行目录的 `data/plugins/` 下：
+
+```
+cd data/plugins/
+git clone https://github.com/Zzzzzzouhang/astrbot_plugin_tuqunmanage.git
+```
+
+## 🎮 使用方法 (机器人指令)
+
+所有指令均需在群聊中 `@机器人` 后发送，例如：`@Bot /快速车帮助`
+
+### 📌 群友上车
+
+群成员无需发送任何指令前缀，直接在群内发送**目标队列数字**即可登记加入：
+
+- 发送 `9` → 加入队列 [9]
+- 发送 `10 11` → 同时加入队列 [10] 和 [11]
+- 中途改变主意发送其他数字 → 自动从旧队列换乘到新队列
+
+### 📌 管理员指令
+
+| 指令 | 说明 | 示例 |
+|---|---|---|
+| `/快速车` | 查看简易帮助与当前统计状态 | `@Bot /快速车` |
+| `/快速车帮助` | 查看完整帮助菜单 | `@Bot /快速车帮助` |
+| `/快速车统计 [数字1] [数字2] ...` | 开启新一轮统计，支持 1~5 个数字 | `@Bot /快速车统计 9 10 11` |
+| `/结束统计` | 结束当前统计，锁定队列 | `@Bot /结束统计` |
+| `/快速抽取[数量]` | 从各队列随机抽取指定人数 | `@Bot /快速抽取2` |
+| `/快速车提醒[数字]` | @中签群友发车提醒 | `@Bot /快速车提醒9` |
+| `/添加队列 [数字]` | 动态添加新队列 | `@Bot /添加队列 12` |
+| `/修改队列 [旧数字] [新数字]` | 变更队列数字，成员平滑迁移 | `@Bot /修改队列 10 11` |
+| `/快速车添加 [数字] @群友...` | 批量添加成员到指定队列 | `@Bot /快速车添加 9 @张三 @李四` |
+| `/快速车删除 [数字] @群友...` | 批量从指定队列移除成员 | `@Bot /快速车删除 9 @张三` |
+| `/清空统计` | 清空当前统计并自动归档到历史 | `@Bot /清空统计` |
+| `/统计详细记录` | 查看当前活跃队列与中签详情 | `@Bot /统计详细记录` |
+| `/上次统计详细` | 查看上一次历史统计详情 | `@Bot /上次统计详细` |
+
+> **别名** ：`/快速车提醒` 可用 `/快速提醒` 替代；`/统计详细记录` 可用 `/快速车详细`、`/统计详细`、`/快速车记录` 替代。
+
+## 📊 使用流程示例
+
+```
+1. 管理员: @Bot /快速车统计 9 10 11
+   → Bot: ✅ 开始新一轮统计！正在监听目标队列：9、10、11。
+
+2. 群友A: 9
+   → Bot: 📌 [群友A] 已成功记录到 [9] 队列！(当前人数：1)
+
+3. 群友B: 10 11
+   → Bot: 📌 [群友B] 已成功记录到 [10]、[11] 队列！
+
+4. 群友A: 10        (改签)
+   → Bot: 📌 [群友A] 已成功改签到 [10] 队列！(当前人数：2)
+
+5. 管理员: @Bot /结束统计
+   → Bot: 🛑 统计功能已关闭，使用 /快速抽取[抽取数量]进行抽取。
+          📊 快速车统计详细名单：...
+
+6. 管理员: @Bot /快速抽取2
+   → Bot: 🎉 抽取结果 (每个队列抽取 2 人)：...
+
+7. 管理员: @Bot /快速车提醒9
+   → Bot: 📢 快速车发车提醒！[9] 队列的中签群友请注意：
+          @中签者1 @中签者2
+          🚗 车已备好，请速速到场！
+```
+
+## 📁 存储结构说明
+
+插件的数据通过 AstrBot KV 接口规范化存储，键名为 `fast_car_data`：
+
+- 数据结构按会话（群聊/私聊）隔离，每个会话独立维护当前统计与历史记录。
+- 插件启动时自动检测并迁移旧版数据结构，确保平滑升级。
+
+## 🙏 致谢
+
+- 感谢 [AstrBot](https://github.com/Soulter/AstrBot) 提供的优秀机器人插件生态。
+
+## 📄 开源协议
+
+[MIT License](https://github.com/Zzzzzzouhang/astrbot_plugin_tuqunmanage/blob/master/LICENSE)
