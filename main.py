@@ -5,8 +5,13 @@ from astrbot.api.star import Context, Star, register
 from astrbot.api import logger
 from astrbot.api.message_components import At, Plain
 
-@register("fast_car_lottery", "YourName", "快速车统计抽取插件(全功能带帮助版)", "1.8.3")
+@register("fast_car_lottery", "YourName", "快速车统计抽取插件(全功能带帮助版)", "1.8.4")
 class FastCarLotteryPlugin(Star):
+    # 管理员配置提示（精简版）
+    ADMIN_CONFIG_HINT = (
+        "\n\n💡 管理员指令需先在 AstrBot 后台 → 配置 → 普通配置 → 平台配置 → 管理员ID 中添加 QQ号 或 用户ID。"
+    )
+
     def __init__(self, context: Context):
         super().__init__(context)
         self.stats_data = {}
@@ -133,7 +138,7 @@ class FastCarLotteryPlugin(Star):
 🔟 /上次统计详细 : 查看上一轮历史名单及历史抽取记录。
 1️⃣1️⃣ /清空统计 : 擦除当前活跃队列，并在擦除前自动备份到历史区。
 1️⃣2️⃣ /快速车帮助 : 显示本帮助菜单。"""
-        yield event.plain_result(help_text)
+        yield event.plain_result(help_text + self.ADMIN_CONFIG_HINT)
 
     # ====================== 快速车添加 指令 ======================
     @filter.command("快速车添加")
@@ -425,7 +430,6 @@ class FastCarLotteryPlugin(Star):
             yield event.plain_result("✅ 已成功清空当前群组的活跃统计。")
 
     @filter.command("统计详细记录", alias={"快速车详细", "统计详细", "快速车记录"})
-    @filter.permission_type(filter.PermissionType.ADMIN)
     async def show_detail_stat(self, event: AstrMessageEvent):
         if not self.is_at_me(event): return
         session_data = self._get_session_data(event)
@@ -450,7 +454,6 @@ class FastCarLotteryPlugin(Star):
         yield event.plain_result("\n".join(result_lines))
 
     @filter.command("上次统计详细")
-    @filter.permission_type(filter.PermissionType.ADMIN)
     async def show_last_detail_stat(self, event: AstrMessageEvent):
         if not self.is_at_me(event): return
         session_data = self._get_session_data(event)

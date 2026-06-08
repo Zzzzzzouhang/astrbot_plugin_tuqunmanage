@@ -1,6 +1,6 @@
 name: astrbot_plugin_tuqunmanage
 display_name: 快速车统计抽取插件
 desc: 群内快速车队列管理插件，支持多队列统计、自动上车/换乘、随机抽取中签、中签提醒等功能。
-version: v1.8.3
+version: v1.8.4
 author: Zzzzzzouhang
 repo: https://github.com/Zzzzzzouhang/astrbot_plugin_tuqunmanage
