@@ -449,7 +449,7 @@ class FastCarLotteryPlugin(Star):
         else:
             for t in current["targets"]:
                 winners = current["draw_results"].get(t, [])
-                winners_str = ", ".join([w["name"] for w in winners]) if winners else "无中签"
+                winners_str = ", ".join([f"{w['name']}({w['id']})" for w in winners]) if winners else "无中签"
                 result_lines.append(f"▶ [{t}] 队列中签: {winners_str}")
         yield event.plain_result("\n".join(result_lines))
 
@@ -470,6 +470,6 @@ class FastCarLotteryPlugin(Star):
         last_draw_results = last.get("draw_results", {})
         for t in last["targets"]:
             winners = last_draw_results.get(t, [])
-            winners_str = ", ".join([w["name"] for w in winners]) if winners else "无中签记录"
+            winners_str = ", ".join([f"{w['name']}({w['id']})" for w in winners]) if winners else "无中签记录"
             result_lines.append(f"▶ [{t}] 队列中签: {winners_str}")
         yield event.plain_result("\n".join(result_lines))
