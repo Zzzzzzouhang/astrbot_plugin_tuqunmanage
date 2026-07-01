@@ -391,7 +391,7 @@ class FastCarLotteryPlugin(Star):
             actual_draw_count = min(draw_count, len(q))
             winners = random.sample(q, actual_draw_count)
             current["draw_results"][t] = winners
-            winners_str = "、".join([f"{winner['name']}" for winner in winners])
+            winners_str = "、".join([f"{winner['name']}({winner['id']})" for winner in winners])
             result_lines.append(f"▶ [{t}] 队列 ({len(q)}人): {winners_str}")
         result_lines.append("\n💡 管理员可@全员通知，或者/快速车提醒[队列数字]")
         await self.save_data()
@@ -414,7 +414,7 @@ class FastCarLotteryPlugin(Star):
         chain = [Plain(f"📢 快速车发车提醒！[{target_num}] 队列的中签群友请注意：\n\n")]
         for user in winners_list:
             chain.append(At(qq=user["id"]))
-            chain.append(Plain(" "))
+            chain.append(Plain(f" ({user['id']}) "))
         chain.append(Plain("\n\n🚗 车已备好，请速速到场！"))
         yield event.chain_result(chain)
         
