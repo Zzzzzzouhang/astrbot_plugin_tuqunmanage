@@ -380,17 +380,38 @@ class FastCarLotteryPlugin(Star):
         draw_count = max(1, draw_count)
         targets = current["targets"]
         queues = current["queues"]
-        current["draw_results"] = {}
+        drawn_ids = set()
+        draw_results = {}
+        base_weight = 1.0
+        repeat_weight = base_weight / 50
+
+        for t in targets:
+            weighted_candidates = []
+            seen_ids = set()
+            for user in queues[t]:
+                uid = str(user["id"])
+                if uid in seen_ids:
+                    continue
+                seen_ids.add(uid)
+                weight = repeat_weight if uid in drawn_ids else base_weight
+                weighted_candidates.append((random.expovariate(weight), user))
+
+            actual_draw_count = min(draw_count, len(weighted_candidates))
+            winners = [
+                user
+                for _, user in sorted(weighted_candidates, key=lambda item: item[0])[:actual_draw_count]
+            ]
+            draw_results[t] = winners
+            drawn_ids.update(str(winner["id"]) for winner in winners)
+
+        current["draw_results"] = draw_results
         result_lines = [f"🎉 抽取结果 (每个队列抽取 {draw_count} 人)："]
         for t in targets:
             q = queues[t]
             if not q:
                 result_lines.append(f"▶ [{t}] 队列: 无人参与")
-                current["draw_results"][t] = []
                 continue
-            actual_draw_count = min(draw_count, len(q))
-            winners = random.sample(q, actual_draw_count)
-            current["draw_results"][t] = winners
+            winners = draw_results[t]
             winners_str = "、".join([f"{winner['name']}({winner['id']})" for winner in winners])
             result_lines.append(f"▶ [{t}] 队列 ({len(q)}人): {winners_str}")
         result_lines.append("\n💡 管理员可@全员通知，或者/快速车提醒[队列数字]")
