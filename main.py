@@ -383,7 +383,7 @@ class FastCarLotteryPlugin(Star):
         drawn_ids = set()
         draw_results = {}
         base_weight = 1.0
-        repeat_weight = base_weight / 50
+        repeat_weight = base_weight / 500
 
         for t in targets:
             weighted_candidates = []
